@@ -1,0 +1,214 @@
+---
+title: "Hope Athletics"
+author: "Samuel Lowry"
+date: "3/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(janitor)
+```
+
+## Hope Athletics Sponsors
+
+```{r data}
+x <- read_csv("Hope College Athletics - Sponsors Survey.csv",
+              col_types = cols(
+  Timestamp = col_character(),
+  Username = col_character(),
+  `What is your current class standing at Hope College?` = col_character(),
+  `What is your gender?` = col_character(),
+  `Which sport(s) are you a part of at Hope College?` = col_character(),
+  `Are you aware of any corporate sponsors that are associated with Hope College Athletics?` = col_character(),
+  `If yes, which sponsors?` = col_character(),
+  `What organizations would you like to see Hope College Athletics partner with?` = col_character(),
+  `Are there any other organizations that you would want to see Hope College Athletics partner with?` = col_character(),
+  `In what ways could Hope College Athletics recognize, promote, or acknowledge these sponsors?` = col_character(),
+  `Would you find banners/advertising of these sponsors distracting on your playing surface?` = col_character(),
+  `Would you be interested in a volunteer event that paired Hope College athletes with sponsors?` = col_character(),
+  `What projects around Hope College Athletics would you want to see funded from these sponsors?` = col_character(),
+  `Do you feel corporate partners would add value to your overall Hope College Athletics experience?` = col_character(),
+  `If no, in what ways would corporate partners hinder your Hope College Athletics experience?` = col_character(),
+  `Is there any other information you would like to let us know regarding sponsors at Hope?` = col_character()
+)) 
+
+x <- x %>% 
+  clean_names() 
+
+sports <- x %>% 
+  select(which_sport_s_are_you_a_part_of_at_hope_college) %>% 
+  mutate(which_sport_s_are_you_a_part_of_at_hope_college = str_trim(which_sport_s_are_you_a_part_of_at_hope_college)) %>% 
+  mutate(sports = case_when(which_sport_s_are_you_a_part_of_at_hope_college %in% c("baseball", "Baseball") ~ "Baseball",
+    which_sport_s_are_you_a_part_of_at_hope_college %in% c("basketball", "Men's Basketball", "Mens Bball", "women's basketball", "Women's Basketball", "Basketball") ~ "Basketball",
+    which_sport_s_are_you_a_part_of_at_hope_college == "cheer" ~ "Cheer",
+    which_sport_s_are_you_a_part_of_at_hope_college %in% c("Diving", "Swim & dive", "swimming", "Swimming", "Swimming and Diving", "Swim & Dive", "Swim") ~ "Swim & Dive",
+    which_sport_s_are_you_a_part_of_at_hope_college %in% c("football", "Football") ~ "Football",
+    which_sport_s_are_you_a_part_of_at_hope_college %in% c("lax", "Mens Lacrosse", "Lacrosse") ~ "Lacrosse",
+    which_sport_s_are_you_a_part_of_at_hope_college %in% c("Men's Soccer", "soccer", "Varsity Soccer.", "Women's Soccer", "Womens soccer", "Womens Soccer", "Soccer", "Women’s Soccer") ~ "Soccer",
+    which_sport_s_are_you_a_part_of_at_hope_college %in% c("Cross country", "Cross Country", "Cross country and track", "Cross Country and Track", "Cross country and track and field", "Cross Country and Track and Field", "Cross Country, Indoor Track, Outdoor Track", "Cross Country, track", "Cross Country, Track", "Cross country, track and field", "Cross Country, Track and Field", "Cross country/track", "track", "Track", "Track & Field", "track and field", "Track and field", "Track and Field", "Track and Field and Cross country", "Women’s track and field", "Cross Country/Track & Field") ~ "CC/T&F",
+    which_sport_s_are_you_a_part_of_at_hope_college %in% c("Men's Golf", "Golf", "Women’s golf") ~ "Golf",
+    which_sport_s_are_you_a_part_of_at_hope_college %in% c("Men’s volleyball", "Volleyball") ~ "Volleyball",
+    which_sport_s_are_you_a_part_of_at_hope_college %in% c("softball", "Softball") ~ "Softball",
+    which_sport_s_are_you_a_part_of_at_hope_college %in% c("tennis", "Varsity men’s tennis", "Women’s Tennis", "Tennis") ~ "Tennis"
+    )) %>% 
+  na.omit() %>% 
+  select(sports)
+
+#football and track, football baseball, Hockey and Lacrosse, volleyball and softball
+sport2 <- tibble(sports = c("Football", "CC/T&F", "Football", "Baseball", "Hockey", "Lacrosse", "Volleyball", "Softball"))
+
+sports <- rbind(sports, sport2)
+
+sport_summary <- sports %>% 
+  group_by(sports) %>% 
+  summarize(n = n()) %>% 
+  mutate(percent = n/1.5) %>% 
+  arrange(desc(percent))
+```
+
+```{r}
+sport_plot <- sport_summary %>% 
+  ggplot(aes(x = reorder(sports, -percent), y = percent)) +
+  geom_bar(stat = "identity", 
+           fill = "darkorange2") +
+  labs(title = "Sports Breakdown of Respondents",
+       x = "Sport",
+       y = "Percent of Respondents") +
+  theme(plot.title = element_text(hjust = 0.5, color = "darkblue", size = 16),
+        axis.text.x = element_text(angle = 15),
+        axis.title.x = element_text(color = "darkblue", size = 12),
+        axis.title.y = element_text(color = "darkblue", size = 12))
+
+ggsave("images/sport_plot.png")
+
+gender <- x %>% 
+  select(what_is_your_gender) %>% 
+  group_by(what_is_your_gender) %>% 
+  summarize(n = n()) %>% 
+  mutate(percent = n/1.46)
+
+gender_plot <- gender %>% 
+  ggplot(aes(x = "", y = percent, fill = what_is_your_gender)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  labs(title = "Gender Breakdown of Respondents",
+       fill = "Gender",
+       y = "",
+       x = "") +
+  scale_fill_manual(values = c("darkorange2", "darkblue", "darkgrey")) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, color = "darkblue", size = 16), 
+        legend.title = element_text(color = "darkblue", size = 12))
+
+ggsave("images/gender_plot.png")
+
+class <- x %>% 
+  select(what_is_your_current_class_standing_at_hope_college) %>% 
+  group_by(what_is_your_current_class_standing_at_hope_college) %>% 
+  summarize(n = n()) %>% 
+  mutate(percent = n/1.46) %>% 
+  mutate(what_is_your_current_class_standing_at_hope_college = factor(what_is_your_current_class_standing_at_hope_college, levels = c("Freshman", "Sophomore", "Junior", "Senior")))
+
+class_plot <- class %>% 
+  ggplot(aes(x = "", y = percent, fill = what_is_your_current_class_standing_at_hope_college)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  labs(title = "Class Breakdown of Respondents",
+       fill = "Class",
+       y = "",
+       x = "") +
+  scale_fill_manual(values = c("darkorange2", "darkred", "darkblue", "darkgreen")) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, color = "darkblue", size = 16), 
+        legend.title = element_text(color = "darkblue", size = 12))
+
+ggsave("images/class_plot.png")
+```
+
+```{r}
+aware <- x %>% 
+  select(are_you_aware_of_any_corporate_sponsors_that_are_associated_with_hope_college_athletics) %>% 
+  group_by(are_you_aware_of_any_corporate_sponsors_that_are_associated_with_hope_college_athletics) %>% 
+  summarize(n = n()) %>% 
+  mutate(percent = n/1.46)
+
+aware_plot <- aware %>% 
+  ggplot(aes(x = "", y = percent, fill = are_you_aware_of_any_corporate_sponsors_that_are_associated_with_hope_college_athletics)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  labs(title = "Aware of At Least One Corporate Sponsor",
+       fill = "Response",
+       y = "",
+       x = "") +
+  scale_fill_manual(values = c("darkorange2", "darkblue")) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, color = "darkblue", size = 16), 
+        legend.title = element_text(color = "darkblue", size = 12))
+
+ggsave("images/aware_plot.png")
+
+```
+
+```{r}
+known_spon <- x %>% 
+  select(if_yes_which_sponsors) %>% 
+  group_by(if_yes_which_sponsors) %>% 
+  summarize(n = n()) %>% 
+  mutate(percent = n/1.46) %>% 
+  arrange(desc(percent))
+
+known <- tibble(sponsor = c("LVZ Financial", "B-Dubs", "Mountain Dew"),
+                number = c(13, 5, 5))
+
+known <- known %>% 
+  mutate(percent = number/1.46)
+
+known_plot <- known %>% 
+  ggplot(aes(x = reorder(sponsor, -percent), y = percent)) +
+  geom_bar(stat = "identity", 
+           fill = "darkorange2",
+           width = .6) +
+  labs(title = "Top Three Known Sponsors",
+       x = "Sponsor",
+       y = "Percent of Respondents") +
+  theme(plot.title = element_text(hjust = 0.5, color = "darkblue", size = 16),
+        axis.text.x = element_text(angle = 15),
+        axis.title.x = element_text(color = "darkblue", size = 12),
+        axis.title.y = element_text(color = "darkblue", size = 12))
+
+known_plot
+
+ggsave("images/known_plot.png")
+```
+
+```{r}
+orgs <- tibble(orgs = c("Big E's", "New Holland", "Harbor Wear", "Gazelle Sports", "Kilwins", "MVP", "Shoreline Orthopedics", "Jimmy Johns", "Buffalo Wild Wings", "Chic-Fil-A", "Biggby", "Googs", "On The Border", "Macatawa Bank", "Sawyer Water Products"),
+               n = c(64, 86, 31, 91, 56, 49, 42, 68, 73, 98, 38, 33, 33, 26, 44))
+orgs <- orgs %>% 
+  mutate(percent = n/1.46)
+
+orgs_plot <- orgs %>% 
+  ggplot(aes(x = reorder(orgs, percent), y = percent)) +
+  geom_bar(stat = "identity", 
+           fill = "darkorange2",
+           width = .6) +
+  labs(title = "Desire to Partner with Certain Organizations",
+       x = "Organizations",
+       y = "Percent of Respondents") +
+  theme(plot.title = element_text(hjust = 0.5, color = "darkblue", size = 16),
+        axis.title.x = element_text(color = "darkblue", size = 12),
+        axis.title.y = element_text(color = "darkblue", size = 12)) +
+  coord_flip(xlim = NULL, ylim = NULL, expand = TRUE, clip = "on")
+
+
+ggsave("images/orgs_plot.png")
+
+
+
+```
+
+
+
+
